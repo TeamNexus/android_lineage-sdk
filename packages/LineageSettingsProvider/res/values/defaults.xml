@@ -34,14 +34,6 @@
     <!-- Defaults for LineageSettings.Secure.DEV_FORCE_SHOW_NAVBAR -->
     <integer name="def_force_show_navbar">0</integer>
 
-    <!-- THESE DEFAULTS COME FROM org.lineageos.platform.internal's config_defaultQuickSettingsTiles
-         AND SHOULD BE OVERLAID THERE.
-
-         DO NOT USE:
-         Default for LineageSettings.Secure.QS_TILES
-         Comma-delimited, quick settings tiles. See QSConstants.java for a list of all available tiles
-    <string name="def_qs_tiles">wifi,bt,cell,airplane,rotation,flashlight,location,cast,hotspot,live_display</string> -->
-
     <!-- Default for LineageSettings.Secure.STATS_COLLECTION -->
     <bool name="def_stats_collection">false</bool>
 
@@ -54,9 +46,6 @@
          * default: 2
          -->
     <integer name="def_battery_style">2</integer>
-
-    <!-- Default for LineageSettings.Secure.QS_USE_MAIN_TILES -->
-    <bool name="def_sysui_qs_main_tiles">true</bool>
 
     <!-- Default for LineageSettings.Secure.LOCKSCREEN_VISUALIZER_ENABLED -->
     <bool name="def_lockscreen_visualizer">true</bool>
@@ -89,9 +78,21 @@
     <!-- Default for LineageSettings.Global.POWER_NOTIFICATIONS_RINGTONE -->
     <string name="def_power_notifications_ringtone" translatable="false">content://settings/system/notification_sound</string>
 
+    <!-- Default value for the battery LEDs brightness -->
+    <integer name="def_battery_brightness_level">255</integer>
+
+    <!-- Default value for the notification LEDs brightness
+         when Do Not Disturb is active -->
+    <integer name="def_battery_brightness_level_zen">255</integer>
+
     <!-- Default value for the notification LEDs brightness
          on devices equiped with configurable LED controller -->
     <integer name="def_notification_brightness_level">255</integer>
+
+    <!-- Default value for the notification LEDs brightness
+         on devices equiped with configurable LED controller
+         when Do Not Disturb is active -->
+    <integer name="def_notification_brightness_level_zen">255</integer>
 
     <!-- Default value for notification LED customization -->
     <bool name="def_notification_pulse_custom_enable">false</bool>

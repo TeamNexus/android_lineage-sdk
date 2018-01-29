@@ -1671,11 +1671,38 @@ public final class LineageSettings {
                 new InclusiveIntegerRangeValidator(0, 1);
 
         /**
+         * Contains the battery light maximum brightness to use.
+         * Values range from 1 to 255
+         */
+        public static final String BATTERY_LIGHT_BRIGHTNESS_LEVEL =
+                "battery_light_brightness_level";
+
+        /**
+         * Contains the battery light maximum brightness to use when Do Not
+         * Disturb is active.
+         * Values range from 1 to 255
+         */
+        public static final String BATTERY_LIGHT_BRIGHTNESS_LEVEL_ZEN =
+                "battery_light_brightness_level_zen";
+
+        /** @hide */
+        public static final Validator BATTERY_LIGHT_BRIGHTNESS_LEVEL_VALIDATOR =
+                new InclusiveIntegerRangeValidator(1, 255);
+
+        /**
          * Contains the notifications light maximum brightness to use.
          * Values range from 1 to 255
          */
         public static final String NOTIFICATION_LIGHT_BRIGHTNESS_LEVEL =
                 "notification_light_brightness_level";
+
+        /**
+         * Contains the notifications light maximum brightness to use when Do Not
+         * Disturb is active.
+         * Values range from 1 to 255
+         */
+        public static final String NOTIFICATION_LIGHT_BRIGHTNESS_LEVEL_ZEN =
+                "notification_light_brightness_level_zen";
 
         /** @hide */
         public static final Validator NOTIFICATION_LIGHT_BRIGHTNESS_LEVEL_VALIDATOR =
@@ -2173,7 +2200,13 @@ public final class LineageSettings {
                     USE_EDGE_SERVICE_FOR_GESTURES_VALIDATOR);
             VALIDATORS.put(STATUS_BAR_NOTIF_COUNT, STATUS_BAR_NOTIF_COUNT_VALIDATOR);
             VALIDATORS.put(CALL_RECORDING_FORMAT, CALL_RECORDING_FORMAT_VALIDATOR);
+            VALIDATORS.put(BATTERY_LIGHT_BRIGHTNESS_LEVEL,
+                    BATTERY_LIGHT_BRIGHTNESS_LEVEL_VALIDATOR);
+            VALIDATORS.put(BATTERY_LIGHT_BRIGHTNESS_LEVEL_ZEN,
+                    BATTERY_LIGHT_BRIGHTNESS_LEVEL_VALIDATOR);
             VALIDATORS.put(NOTIFICATION_LIGHT_BRIGHTNESS_LEVEL,
+                    NOTIFICATION_LIGHT_BRIGHTNESS_LEVEL_VALIDATOR);
+            VALIDATORS.put(NOTIFICATION_LIGHT_BRIGHTNESS_LEVEL_ZEN,
                     NOTIFICATION_LIGHT_BRIGHTNESS_LEVEL_VALIDATOR);
             VALIDATORS.put(NOTIFICATION_LIGHT_SCREEN_ON,
                     NOTIFICATION_LIGHT_SCREEN_ON_VALIDATOR);
@@ -2664,19 +2697,6 @@ public final class LineageSettings {
         public static final String QS_SHOW_AUTO_BRIGHTNESS = "qs_show_auto_brightness";
 
         /**
-         * List of QS tile names
-         * @hide
-         */
-        public static final String QS_TILES = "sysui_qs_tiles";
-
-        /**
-         * Use "main" tiles on the first row of the quick settings panel
-         * 0 = no, 1 = yes
-         * @hide
-         */
-        public static final String QS_USE_MAIN_TILES = "sysui_qs_main_tiles";
-
-        /**
          * Global stats collection
          * @hide
          */
@@ -2928,6 +2948,16 @@ public final class LineageSettings {
         public static final Validator NETWORK_TRAFFIC_AUTOHIDE_VALIDATOR = sBooleanValidator;
 
         /**
+         * Measurement unit preference for network traffic
+         * @hide
+         */
+        public static final String NETWORK_TRAFFIC_UNITS = "network_traffic_units";
+
+        /** @hide */
+        public static final Validator NETWORK_TRAFFIC_UNITS_VALIDATOR =
+                new InclusiveIntegerRangeValidator(0, 3);
+
+        /**
          * Whether or not to show measurement units in the network traffic indiciator
          * @hide
          */
@@ -2935,15 +2965,6 @@ public final class LineageSettings {
 
         /** @hide */
         public static final Validator NETWORK_TRAFFIC_SHOW_UNITS_VALIDATOR = sBooleanValidator;
-
-        /**
-         * Whether to use kilobits per seconds in the network traffic indiciator
-         * @hide
-         */
-        public static final String NETWORK_TRAFFIC_USE_KBPS = "network_traffic_use_kbps";
-
-        /** @hide */
-        public static final Validator NETWORK_TRAFFIC_USE_KBPS_VALIDATOR = sBooleanValidator;
 
         // endregion
 
@@ -2966,8 +2987,6 @@ public final class LineageSettings {
                 LineageSettings.Secure.POWER_MENU_ACTIONS,
                 LineageSettings.Secure.STATS_COLLECTION,
                 LineageSettings.Secure.QS_SHOW_BRIGHTNESS_SLIDER,
-                LineageSettings.Secure.QS_TILES,
-                LineageSettings.Secure.QS_USE_MAIN_TILES,
                 LineageSettings.Secure.NAVIGATION_RING_TARGETS[0],
                 LineageSettings.Secure.NAVIGATION_RING_TARGETS[1],
                 LineageSettings.Secure.NAVIGATION_RING_TARGETS[2],
@@ -3052,11 +3071,10 @@ public final class LineageSettings {
         static {
             VALIDATORS.put(PROTECTED_COMPONENTS, PROTECTED_COMPONENTS_VALIDATOR);
             VALIDATORS.put(PROTECTED_COMPONENT_MANAGERS, PROTECTED_COMPONENTS_MANAGER_VALIDATOR);
-
             VALIDATORS.put(NETWORK_TRAFFIC_MODE, NETWORK_TRAFFIC_MODE_VALIDATOR);
             VALIDATORS.put(NETWORK_TRAFFIC_AUTOHIDE, NETWORK_TRAFFIC_AUTOHIDE_VALIDATOR);
+            VALIDATORS.put(NETWORK_TRAFFIC_UNITS, NETWORK_TRAFFIC_UNITS_VALIDATOR);
             VALIDATORS.put(NETWORK_TRAFFIC_SHOW_UNITS, NETWORK_TRAFFIC_SHOW_UNITS_VALIDATOR);
-            VALIDATORS.put(NETWORK_TRAFFIC_USE_KBPS, NETWORK_TRAFFIC_USE_KBPS_VALIDATOR);
         }
 
         /**

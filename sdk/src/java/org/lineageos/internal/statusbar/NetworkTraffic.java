@@ -34,7 +34,6 @@ import android.os.Handler;
 import android.os.UserHandle;
 import android.os.Message;
 import android.os.SystemClock;
-import android.text.format.Formatter;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
@@ -43,11 +42,9 @@ import android.widget.TextView;
 
 import lineageos.providers.LineageSettings;
 
-import org.lineageos.internal.statusbar.LineageStatusBarItem;
-
 import org.lineageos.platform.internal.R;
 
-public class NetworkTraffic extends TextView implements LineageStatusBarItem {
+public class NetworkTraffic extends TextView {
     private static final String TAG = "NetworkTraffic";
 
     private static final int MODE_DISABLED = 0;
@@ -60,12 +57,19 @@ public class NetworkTraffic extends TextView implements LineageStatusBarItem {
 
     private static final int REFRESH_INTERVAL = 2000;
 
+    private static final int UNITS_KILOBITS = 0;
+    private static final int UNITS_MEGABITS = 1;
+    private static final int UNITS_KILOBYTES = 2;
+    private static final int UNITS_MEGABYTES = 3;
+
     // Thresholds themselves are always defined in kbps
-    private static final long AUTOHIDE_THRESHOLD_KBPS = 10;
-    private static final long AUTOHIDE_THRESHOLD_MBPS = 100;
+    private static final long AUTOHIDE_THRESHOLD_KILOBITS  = 10;
+    private static final long AUTOHIDE_THRESHOLD_MEGABITS  = 100;
+    private static final long AUTOHIDE_THRESHOLD_KILOBYTES = 8;
+    private static final long AUTOHIDE_THRESHOLD_MEGABYTES = 80;
 
     private int mMode = MODE_DISABLED;
-    private boolean mStatusBarIsVisible;
+    private boolean mNetworkTrafficIsVisible;
     private long mTxKbps;
     private long mRxKbps;
     private long mLastTxBytesTotal;
@@ -74,8 +78,9 @@ public class NetworkTraffic extends TextView implements LineageStatusBarItem {
     private int mTextSizeSingle;
     private int mTextSizeMulti;
     private boolean mAutoHide;
+    private long mAutoHideThreshold;
+    private int mUnits;
     private boolean mShowUnits;
-    private boolean mUseKbps;
     private int mDarkModeFillColor;
     private int mLightModeFillColor;
     private int mIconTint = Color.WHITE;
@@ -97,14 +102,44 @@ public class NetworkTraffic extends TextView implements LineageStatusBarItem {
         mTextSizeSingle = resources.getDimensionPixelSize(R.dimen.net_traffic_single_text_size);
         mTextSizeMulti = resources.getDimensionPixelSize(R.dimen.net_traffic_multi_text_size);
 
-        mStatusBarIsVisible = false;
+        mNetworkTrafficIsVisible = false;
 
         mObserver = new SettingsObserver(mTrafficHandler);
     }
 
+    private LineageStatusBarItem.DarkReceiver mDarkReceiver =
+            new LineageStatusBarItem.DarkReceiver() {
+        public void onDarkChanged(Rect area, float darkIntensity, int tint) {
+            mIconTint = (int) ArgbEvaluator.getInstance().evaluate(darkIntensity,
+                    mLightModeFillColor, mDarkModeFillColor);
+            setTextColor(mIconTint);
+            updateTrafficDrawableColor();
+        }
+        public void setFillColors(int darkColor, int lightColor) {
+            mDarkModeFillColor = darkColor;
+            mLightModeFillColor = lightColor;
+        }
+    };
+
+    private LineageStatusBarItem.VisibilityReceiver mVisibilityReceiver =
+            new LineageStatusBarItem.VisibilityReceiver() {
+        public void onVisibilityChanged(boolean isVisible) {
+            if (mNetworkTrafficIsVisible != isVisible) {
+                mNetworkTrafficIsVisible = isVisible;
+                updateViewState();
+            }
+        }
+    };
+
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+
+        LineageStatusBarItem.Manager manager =
+                LineageStatusBarItem.findManager((View) this);
+        manager.addDarkReceiver(mDarkReceiver);
+        manager.addVisibilityReceiver(mVisibilityReceiver);
+
         mContext.registerReceiver(mIntentReceiver,
                 new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         mObserver.observe();
@@ -140,10 +175,8 @@ public class NetworkTraffic extends TextView implements LineageStatusBarItem {
                     mMode == MODE_UPSTREAM_ONLY || mMode == MODE_UPSTREAM_AND_DOWNSTREAM;
             final boolean showDownstream =
                     mMode == MODE_DOWNSTREAM_ONLY || mMode == MODE_UPSTREAM_AND_DOWNSTREAM;
-            final long autoHideThreshold = mUseKbps ?
-                    AUTOHIDE_THRESHOLD_KBPS : AUTOHIDE_THRESHOLD_MBPS;
-            final boolean shouldHide = mAutoHide && (!showUpstream || mTxKbps < autoHideThreshold)
-                    && (!showDownstream || mRxKbps < autoHideThreshold);
+            final boolean shouldHide = mAutoHide && (!showUpstream || mTxKbps < mAutoHideThreshold)
+                    && (!showDownstream || mRxKbps < mAutoHideThreshold);
 
             if (!enabled || shouldHide) {
                 setText("");
@@ -177,9 +210,9 @@ public class NetworkTraffic extends TextView implements LineageStatusBarItem {
                 setVisibility(VISIBLE);
             }
 
-            // Schedule period refresh
+            // Schedule periodic refresh
             mTrafficHandler.removeMessages(MESSAGE_TYPE_PERIODIC_REFRESH);
-            if (enabled && mStatusBarIsVisible) {
+            if (enabled && mNetworkTrafficIsVisible) {
                 mTrafficHandler.sendEmptyMessageDelayed(MESSAGE_TYPE_PERIODIC_REFRESH,
                         REFRESH_INTERVAL);
             }
@@ -188,13 +221,29 @@ public class NetworkTraffic extends TextView implements LineageStatusBarItem {
         private String formatOutput(long kbps) {
             final String value;
             final String unit;
-            if (mUseKbps) {
-                value = String.format("%d", kbps);
-                unit = mContext.getString(R.string.kilobitspersecond_short);
-            } else { // Mbps
-                value = String.format("%.1f", (float) kbps / 1000f);
-                unit = mContext.getString(R.string.megabitspersecond_short);
+            switch (mUnits) {
+                case UNITS_KILOBITS:
+                    value = String.format("%d", kbps);
+                    unit = mContext.getString(R.string.kilobitspersecond_short);
+                    break;
+                case UNITS_MEGABITS:
+                    value = String.format("%.1f", (float) kbps / 1000);
+                    unit = mContext.getString(R.string.megabitspersecond_short);
+                    break;
+                case UNITS_KILOBYTES:
+                    value = String.format("%d", kbps / 8);
+                    unit = mContext.getString(R.string.kilobytespersecond_short);
+                    break;
+                case UNITS_MEGABYTES:
+                    value = String.format("%.2f", (float) kbps / 8000);
+                    unit = mContext.getString(R.string.megabytespersecond_short);
+                    break;
+                default:
+                    value = "unknown";
+                    unit = "unknown";
+                    break;
             }
+
             if (mShowUnits) {
                 return value + " " + unit;
             } else {
@@ -227,10 +276,10 @@ public class NetworkTraffic extends TextView implements LineageStatusBarItem {
                     LineageSettings.Secure.NETWORK_TRAFFIC_AUTOHIDE),
                     false, this, UserHandle.USER_ALL);
             resolver.registerContentObserver(LineageSettings.Secure.getUriFor(
-                    LineageSettings.Secure.NETWORK_TRAFFIC_SHOW_UNITS),
+                    LineageSettings.Secure.NETWORK_TRAFFIC_UNITS),
                     false, this, UserHandle.USER_ALL);
             resolver.registerContentObserver(LineageSettings.Secure.getUriFor(
-                    LineageSettings.Secure.NETWORK_TRAFFIC_USE_KBPS),
+                    LineageSettings.Secure.NETWORK_TRAFFIC_SHOW_UNITS),
                     false, this, UserHandle.USER_ALL);
         }
 
@@ -257,11 +306,30 @@ public class NetworkTraffic extends TextView implements LineageStatusBarItem {
                 LineageSettings.Secure.NETWORK_TRAFFIC_MODE, 0, UserHandle.USER_CURRENT);
         mAutoHide = LineageSettings.Secure.getIntForUser(resolver,
                 LineageSettings.Secure.NETWORK_TRAFFIC_AUTOHIDE, 0, UserHandle.USER_CURRENT) == 1;
+        mUnits = LineageSettings.Secure.getIntForUser(resolver,
+                LineageSettings.Secure.NETWORK_TRAFFIC_UNITS, /* Mbps */ 1,
+                UserHandle.USER_CURRENT);
+
+        switch (mUnits) {
+            case UNITS_KILOBITS:
+                mAutoHideThreshold = AUTOHIDE_THRESHOLD_KILOBITS;
+                break;
+            case UNITS_MEGABITS:
+                mAutoHideThreshold = AUTOHIDE_THRESHOLD_MEGABITS;
+                break;
+            case UNITS_KILOBYTES:
+                mAutoHideThreshold = AUTOHIDE_THRESHOLD_KILOBYTES;
+                break;
+            case UNITS_MEGABYTES:
+                mAutoHideThreshold = AUTOHIDE_THRESHOLD_MEGABYTES;
+                break;
+            default:
+                mAutoHideThreshold = 0;
+                break;
+        }
+
         mShowUnits = LineageSettings.Secure.getIntForUser(resolver,
                 LineageSettings.Secure.NETWORK_TRAFFIC_SHOW_UNITS, 1,
-                UserHandle.USER_CURRENT) == 1;
-        mUseKbps = LineageSettings.Secure.getIntForUser(resolver,
-                LineageSettings.Secure.NETWORK_TRAFFIC_USE_KBPS, 0,
                 UserHandle.USER_CURRENT) == 1;
 
         if (mMode != MODE_DISABLED) {
@@ -298,27 +366,6 @@ public class NetworkTraffic extends TextView implements LineageStatusBarItem {
     private void updateTrafficDrawableColor() {
         if (mDrawable != null) {
             mDrawable.setColorFilter(mIconTint, PorterDuff.Mode.SRC_ATOP);
-        }
-    }
-
-    // LineageStatusBarItem methods
-
-    public void onDarkChanged(Rect area, float darkIntensity, int tint) {
-        mIconTint = (int) ArgbEvaluator.getInstance().evaluate(darkIntensity,
-                mLightModeFillColor, mDarkModeFillColor);
-        setTextColor(mIconTint);
-        updateTrafficDrawableColor();
-    }
-
-    public void setFillColors(int darkColor, int lightColor) {
-        mDarkModeFillColor = darkColor;
-        mLightModeFillColor = lightColor;
-    }
-
-    public void setStatusBarVisibility(boolean isVisible) {
-        if (mStatusBarIsVisible != isVisible) {
-            mStatusBarIsVisible = isVisible;
-            updateViewState();
         }
     }
 }

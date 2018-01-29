@@ -45,9 +45,6 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.util.SparseArray;
 
-import org.lineageos.internal.util.QSConstants;
-import org.lineageos.internal.util.QSUtils;
-
 import lineageos.providers.LineageSettings;
 
 import java.util.ArrayList;
@@ -64,9 +61,12 @@ public class LineageSettingsProvider extends ContentProvider {
     public static final String TAG = "LineageSettingsProvider";
     private static final boolean LOCAL_LOGV = false;
 
+    private static final String SHARED_PREF_NAME_OLD = "CMSettingsProvider";
+
     private static final boolean USER_CHECK_THROWS = true;
 
-    public static final String PREF_HAS_MIGRATED_LINEAGE_SETTINGS = "has_migrated_cm13_settings";
+    public static final String PREF_HAS_MIGRATED_LINEAGE_SETTINGS =
+            "migrated_settings_to_lineage_15_1";
 
     private static final Bundle NULL_SETTING = Bundle.forPair("value", null);
 
@@ -151,6 +151,9 @@ public class LineageSettingsProvider extends ContentProvider {
         if (!hasMigratedLineageSettings) {
             long startTime = System.currentTimeMillis();
 
+            // Remove any lingering old shared_prefs file
+            getContext().deleteSharedPreferences(SHARED_PREF_NAME_OLD);
+
             for (UserInfo user : mUserManager.getUsers()) {
                 migrateLineageSettingsForUser(user.id);
             }
@@ -170,6 +173,18 @@ public class LineageSettingsProvider extends ContentProvider {
     private void migrateLineageSettingsForUser(int userId) {
         synchronized (this) {
             if (LOCAL_LOGV) Log.d(TAG, "Lineage settings will be migrated for user id: " + userId);
+
+            // Rename database files (if needed)
+            LineageDatabaseHelper dbHelper = mDbHelpers.get(userId);
+            if (dbHelper != null) {
+                dbHelper.close();
+                mDbHelpers.delete(userId);
+            }
+            LineageDatabaseHelper.migrateDbFiles(getContext(), userId);
+            if (dbHelper != null) {
+                establishDbTracking(userId);
+                dbHelper = null;
+            }
 
             // Migrate system settings
             int rowsMigrated = migrateLineageSettingsForTable(userId,
@@ -217,41 +232,6 @@ public class LineageSettingsProvider extends ContentProvider {
                     // Settings.Secure.STATS_COLLECTION after migration; so it may exist in both
                     // providers; so if it exists in the new database, prefer it.
                     continue;
-                }
-
-                // insert dnd, edit tiles for upgrade from 12.1 -> 13.0
-                if (LineageSettings.Secure.QS_TILES.equals(settingsKey) && (settingsValue != null
-                        && (!settingsValue.contains(QSConstants.TILE_DND)
-                        || !settingsValue.contains(QSConstants.TILE_EDIT)))) {
-                    if (LOCAL_LOGV) {
-                        Log.d(TAG, "Need to insert DND or Edit tile for upgrade, currentValue: "
-                                + settingsValue);
-                    }
-
-                    final List<String> tiles = delimitedStringToList(
-                            Settings.Secure.getString(contentResolver, settingsKey), ",");
-
-                    if (!tiles.contains(QSConstants.TILE_DND)) {
-                        tiles.add(QSConstants.TILE_DND);
-                    }
-                    if (!tiles.contains(QSConstants.TILE_EDIT)) {
-                        // we need to insert edit tile to the last tile on the first page!
-                        // ensure edit tile is present
-
-                        // use value in old database
-                        boolean nineTilesPerPage = Settings.Secure.getInt(contentResolver,
-                                LineageSettings.Secure.QS_USE_MAIN_TILES, 0) == 1;
-
-                        final int TILES_PER_PAGE = nineTilesPerPage ? 9 : 8;
-
-                        if (tiles.size() > TILES_PER_PAGE) {
-                            tiles.add((TILES_PER_PAGE - 1), QSConstants.TILE_EDIT);
-                        } else {
-                            tiles.add(QSConstants.TILE_EDIT);
-                        }
-                    }
-
-                    settingsValue = TextUtils.join(",", tiles);
                 }
             }
             else if (tableName.equals(LineageDatabaseHelper.LineageTableNames.TABLE_GLOBAL)) {
@@ -332,22 +312,6 @@ public class LineageSettingsProvider extends ContentProvider {
                         "get/set setting for user", null);
                 if (LOCAL_LOGV) Log.v(TAG, "   access setting for user " + callingUserId);
             }
-        }
-
-        boolean hasMigratedLineageSettings = mSharedPrefs.getBoolean(PREF_HAS_MIGRATED_LINEAGE_SETTINGS,
-                false);
-        final ComponentName preBootReceiver = new ComponentName("org.lineageos.lineagesettings",
-                "org.lineageos.lineagesettings.PreBootReceiver");
-        final PackageManager packageManager = getContext().getPackageManager();
-        if (!hasMigratedLineageSettings &&
-                packageManager.getComponentEnabledSetting(preBootReceiver)
-                        == PackageManager.COMPONENT_ENABLED_STATE_DISABLED ) {
-            if (LOCAL_LOGV) {
-                Log.d(TAG, "Reenabling component preboot receiver");
-            }
-            packageManager.setComponentEnabledSetting(preBootReceiver,
-                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                    PackageManager.DONT_KILL_APP);
         }
 
         // Migrate methods
