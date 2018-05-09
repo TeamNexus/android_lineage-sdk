@@ -564,9 +564,4 @@ public class LiveDisplayService extends LineageSystemService {
         LineageSettings.System.putIntForUser(mContext.getContentResolver(),
                 setting, value, UserHandle.USER_CURRENT);
     }
-
-    public boolean isNight() {
-        final TwilightState twilight = mTwilightTracker.getCurrentState();
-        return twilight != null && twilight.isNight();
-    }
 }
