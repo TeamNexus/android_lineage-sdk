@@ -44,6 +44,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import lineageos.trust.TrustInterface;
+
 /**
  * LineageSettings contains Lineage specific preferences in System, Secure, and Global.
  */
@@ -522,6 +524,18 @@ public final class LineageSettings {
          */
         public static String getString(ContentResolver resolver, String name) {
             return getStringForUser(resolver, name, UserHandle.myUserId());
+        }
+
+        /**
+         * Look up a name in the database.
+         * @param resolver to access the database with
+         * @param name to look up in the table
+         * @param def Value to return if the setting is not defined.
+         * @return the corresponding value, or null if not present
+         */
+        public static String getString(ContentResolver resolver, String name, String def) {
+            String str = getStringForUser(resolver, name, UserHandle.myUserId());
+            return str == null ? def : str;
         }
 
         /** @hide */
@@ -1342,6 +1356,15 @@ public final class LineageSettings {
                 sNonNullStringValidator;
 
         /**
+         * Current dark overlay package name
+         */
+        public static final String BERRY_DARK_OVERLAY = "berry_dark_overlay";
+
+        /** @hide */
+        public static final Validator BERRY_DARK_OVERLAY_VALIDATOR =
+                sNonNullStringValidator;
+
+        /**
          * Current application managing the style
          */
         public static final String BERRY_MANAGED_BY_APP = "berry_managed_by_app";
@@ -2030,6 +2053,15 @@ public final class LineageSettings {
                 sNonNegativeIntegerValidator;
 
         /**
+         * List of long-screen apps.
+         */
+        public static final String LONG_SCREEN_APPS = "long_screen_apps";
+
+        /** @hide */
+        public static final Validator LONG_SCREEN_APPS_VALIDATOR =
+                sAlwaysTrueValidator;
+
+        /**
          * I can haz more bukkits
          * @hide
          */
@@ -2231,6 +2263,7 @@ public final class LineageSettings {
             VALIDATORS.put(PROXIMITY_ON_WAKE, PROXIMITY_ON_WAKE_VALIDATOR);
             VALIDATORS.put(BERRY_GLOBAL_STYLE, BERRY_GLOBAL_STYLE_VALIDATOR);
             VALIDATORS.put(BERRY_CURRENT_ACCENT, BERRY_CURRENT_ACCENT_VALIDATOR);
+            VALIDATORS.put(BERRY_DARK_OVERLAY, BERRY_DARK_OVERLAY_VALIDATOR);
             VALIDATORS.put(BERRY_MANAGED_BY_APP, BERRY_MANAGED_BY_APP_VALIDATOR);
             VALIDATORS.put(ENABLE_FORWARD_LOOKUP, ENABLE_FORWARD_LOOKUP_VALIDATOR);
             VALIDATORS.put(ENABLE_PEOPLE_LOOKUP, ENABLE_PEOPLE_LOOKUP_VALIDATOR);
@@ -2318,6 +2351,8 @@ public final class LineageSettings {
                     DISPLAY_PICTURE_ADJUSTMENT_VALIDATOR);
             VALIDATORS.put(ACCELEROMETER_ROTATION_ANGLES,
                     ACCELEROMETER_ROTATION_ANGLES_VALIDATOR);
+            VALIDATORS.put(LONG_SCREEN_APPS,
+                    LONG_SCREEN_APPS_VALIDATOR);
             VALIDATORS.put(__MAGICAL_TEST_PASSING_ENABLER,
                     __MAGICAL_TEST_PASSING_ENABLER_VALIDATOR);
         };
@@ -2405,6 +2440,18 @@ public final class LineageSettings {
          */
         public static String getString(ContentResolver resolver, String name) {
             return getStringForUser(resolver, name, UserHandle.myUserId());
+        }
+
+        /**
+         * Look up a name in the database.
+         * @param resolver to access the database with
+         * @param name to look up in the table
+         * @param def Value to return if the setting is not defined.
+         * @return the corresponding value, or null if not present
+         */
+        public static String getString(ContentResolver resolver, String name, String def) {
+            String str = getStringForUser(resolver, name, UserHandle.myUserId());
+            return str == null ? def : str;
         }
 
         /** @hide */
@@ -3042,12 +3089,28 @@ public final class LineageSettings {
         /**
          * Enable displaying the Trust service's notifications
          * 0 = 0ff, 1 = on
+         * @deprecated Rely on {@link lineageos.providers.TRUST_WARNINGS} instead
          */
+         @Deprecated
         public static final String TRUST_NOTIFICATIONS = "trust_notifications";
 
         /** @hide */
+        @Deprecated
         public static final Validator TRUST_NOTIFICATIONS_VALIDATOR =
                 sBooleanValidator;
+
+        /**
+         * Trust warnings status
+         *
+         * Stores flags for each feature
+         *
+         * @see {@link lineageos.trust.TrustInterface.TRUST_WARN_MAX_VALUE}
+         */
+        public static final String TRUST_WARNINGS = "trust_warnings";
+
+        /** @hide */
+        public static final Validator TRUST_WARNINGS_VALIDATOR =
+                new InclusiveIntegerRangeValidator(0, TrustInterface.TRUST_WARN_MAX_VALUE);
 
         // endregion
 
@@ -3159,6 +3222,7 @@ public final class LineageSettings {
             VALIDATORS.put(NETWORK_TRAFFIC_UNITS, NETWORK_TRAFFIC_UNITS_VALIDATOR);
             VALIDATORS.put(NETWORK_TRAFFIC_SHOW_UNITS, NETWORK_TRAFFIC_SHOW_UNITS_VALIDATOR);
             VALIDATORS.put(TRUST_NOTIFICATIONS, TRUST_NOTIFICATIONS_VALIDATOR);
+            VALIDATORS.put(TRUST_WARNINGS, TRUST_WARNINGS_VALIDATOR);
         }
 
         /**
@@ -3252,6 +3316,18 @@ public final class LineageSettings {
          */
         public static String getString(ContentResolver resolver, String name) {
             return getStringForUser(resolver, name, UserHandle.myUserId());
+        }
+
+        /**
+         * Look up a name in the database.
+         * @param resolver to access the database with
+         * @param name to look up in the table
+         * @param def Value to return if the setting is not defined.
+         * @return the corresponding value, or null if not present
+         */
+        public static String getString(ContentResolver resolver, String name, String def) {
+            String str = getStringForUser(resolver, name, UserHandle.myUserId());
+            return str == null ? def : str;
         }
 
         /** @hide */
