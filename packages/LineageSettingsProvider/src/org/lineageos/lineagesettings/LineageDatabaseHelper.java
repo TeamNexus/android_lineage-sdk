@@ -51,7 +51,7 @@ public class LineageDatabaseHelper extends SQLiteOpenHelper{
     private static final boolean LOCAL_LOGV = false;
 
     private static final String DATABASE_NAME = "lineagesettings.db";
-    private static final int DATABASE_VERSION = 8;
+    private static final int DATABASE_VERSION = 9;
 
     private static final String DATABASE_NAME_OLD = "cmsettings.db";
 
@@ -321,6 +321,21 @@ public class LineageDatabaseHelper extends SQLiteOpenHelper{
             }
             upgradeVersion = 8;
         }
+
+        if (upgradeVersion < 9) {
+            if (mUserHandle == UserHandle.USER_OWNER) {
+                db.execSQL("UPDATE system SET value = '0' WHERE value IN ('10', '11') AND name IN ("
+                        + "'" + LineageSettings.System.KEY_HOME_LONG_PRESS_ACTION + "',"
+                        + "'" + LineageSettings.System.KEY_HOME_DOUBLE_TAP_ACTION + "',"
+                        + "'" + LineageSettings.System.KEY_MENU_ACTION + "',"
+                        + "'" + LineageSettings.System.KEY_MENU_LONG_PRESS_ACTION + "',"
+                        + "'" + LineageSettings.System.KEY_ASSIST_ACTION + "',"
+                        + "'" + LineageSettings.System.KEY_ASSIST_LONG_PRESS_ACTION + "',"
+                        + "'" + LineageSettings.System.KEY_APP_SWITCH_ACTION + "',"
+                        + "'" + LineageSettings.System.KEY_APP_SWITCH_LONG_PRESS_ACTION + "')");
+            }
+            upgradeVersion = 9;
+        }
         // *** Remember to update DATABASE_VERSION above!
 
         if (upgradeVersion < newVersion) {
@@ -469,6 +484,9 @@ public class LineageDatabaseHelper extends SQLiteOpenHelper{
 
             loadIntegerSetting(stmt, LineageSettings.System.STATUS_BAR_BATTERY_STYLE,
                     R.integer.def_battery_style);
+
+            loadIntegerSetting(stmt, LineageSettings.System.STATUS_BAR_CLOCK,
+                    R.integer.def_clock_position);
 
             if (mContext.getResources().getBoolean(R.bool.def_notification_pulse_custom_enable)) {
                 loadStringSetting(stmt, LineageSettings.System.NOTIFICATION_LIGHT_PULSE_CUSTOM_VALUES,
